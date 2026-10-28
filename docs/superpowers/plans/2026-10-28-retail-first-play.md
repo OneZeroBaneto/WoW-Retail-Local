@@ -45,5 +45,5 @@ Ruling: user already authorized implementation. Continue inline; no new design a
 
 Ruling: WoW writes settings on exit. Preserve those later preferences and restore only the owned portal when necessary; rejecting every changed file would prevent normal relaunch and restore. Conflicting portals remain protected. Regression observed failing and then passing.
 
-Execution evidence: source preparation, portable tests, original-code pipe probe, actual TDB read/write audits and independent review completed. Native Windows core build and 35 CTest cases passed. Native MySQL integration passed in run 40762315740 after fixing distinct argument construction. Full DB/BNet run 40763087703 is pending; no gameplay claim.
+Execution evidence: source preparation, portable tests, original-code pipe probe, actual TDB read/write audits and independent review completed. Native Windows core build and 35 CTest cases passed. Native MySQL integration passed in run 40762315740 after fixing distinct argument construction. Full DB/BNet run 40763087703 passed, including post-migration readiness 1/1/74/3/1; no gameplay claim.
 Final review: one Important certificate-resume issue fixed with a failing then passing regression. No deferred minor findings. Generated runtime configs are intentionally regenerated; this boundary is now documented.

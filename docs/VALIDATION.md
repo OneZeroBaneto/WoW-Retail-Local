@@ -45,16 +45,17 @@ Negative Kontrollen in zurückgerollten Transaktionen entfernten jeweils Spawns,
 
 ## Windows-Nachweise
 
-- [Erfolgreicher Windows-Skript- und Konsolenlauf](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40760448899): portable Tests und gepatchter originaler C++-Konsolencode mit echtem Windows SDK und Prozesspipes.
+- [Erfolgreicher Windows-Skript- und Konsolenlauf](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40763752704): portable Tests und gepatchter originaler C++-Konsolencode mit echtem Windows SDK und Prozesspipes.
 - Der erste Vollbuild stoppte vor CMake wegen eines nicht mehr vorhandenen vorinstallierten MySQL-8.0-Pfads. Der Standard-Runner enthält inzwischen MySQL 8.4. Das Setup lädt jetzt MySQL 8.0.46 explizit und prüft SHA-256.
 - [Windows-Vollbuild 40758932831](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40758932831): Core und alle sechs EXEs erfolgreich gebaut/installiert, beide Server mit `--version` gestartet, **35 von 35 CTest-Tests bestanden**. Der Lauf scheiterte anschließend an zusammengezogenen MySQL-Argumenten in der PowerShell-Vorbereitung. Dieser Fehler wurde reproduziert und korrigiert; die Regression prüft jetzt getrennte Argumente statt bloßer Teilstrings.
 - [Native Windows-MySQL-Integration](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40762315740): **bestanden**. Eigene MySQL-8.0.46-Instanz in einem Pfad mit Leerzeichen initialisiert, Root-Passwort gesetzt, expliziten Port geprüft, SQL geschrieben/gelesen und sauber beendet.
-- Vollständiger erneuter TDB-Import und BNet-REST-Start stehen nach der Korrektur noch zur Auswertung an. `verification.json` im Binärpaket trennt Core-Tests, DB-Import, BNet-REST und Gameplay; ein Paket aus einem fehlgeschlagenen Lauf ist keine vollständige Abnahme.
+- [Vollständiger Windows-Gesamtlauf 40763087703](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40763087703): **bestanden**, Dauer 17 Minuten 42 Sekunden. Core mit Konsolenpatch, sechs EXEs, 35/35 CTest-Fälle, TDB-Download/Hash, alle vier Datenbanken samt Core-Updates, Zertifikate, eigener BNet-Prozess auf 1119/8081 und HTTPS-Loginformular mit erwartetem SRP-Endpunkt. Auch die Startdatenprüfung nach den echten Windows-Migrationen ergab 1/1/74/3/1.
+- Das heruntergeladene Artifact `WoW-Retail-Windows-Server` (ID 12848624894) enthält 12 Runtime-Dateien. Jede wird vor der Zusammenstellung des Windows-Pakets gegen den SHA-256 im Prüfnachweis geprüft. Artifact-Digest: `9300f14262a25920599afe8c81c1a76bf9cb81c61fb4f77e9320aab98cb5d6bb`. [Maschinenlesbarer Nachweis](verification/windows-2026-10-28.json).
+- `gameClientTested` und `gameplayTested` bleiben ausdrücklich `false`. Der BNet-HTTPS-Aufruf prüfte das Loginformular; ein normaler Account mit Passwort und ein echter Spielclient benötigen den vollständigen Worldserver mit extrahierten Clientdaten.
 - Der [Upstream-Windows-Build desselben Core-Pins](https://github.com/TrinityCore/TrinityCore/actions/runs/40596069843) war erfolgreich; er enthält unseren Konsolenpatch und unsere DB-/REST-Abnahme nicht und ist daher kein Ersatz für den eigenen Lauf.
 
 ## Noch offen
 
-- Abschluss/Auswertung des erneuten kompletten TDB-/Core-Update-Imports und BNet-REST-Starts nach dem bereits erfolgreichen Build und MySQL-Bootstrap.
 - Passender Windows-Spielclient, Clientdatenextraktion, Launcher-Kompatibilität, Accountprüfung im laufenden vollständigen Server, Clientlogin und Charaktererstellung.
 - Weltbeitritt, sichtbare Gegner, Kampf, Beute, Questfortschritt, Tod/Wiederbelebung.
 - Echter vollständiger Worldserver-Shutdown, Neustart/Persistenz, Backup und Restore auf Windows.

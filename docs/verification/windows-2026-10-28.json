@@ -1,0 +1,93 @@
+{
+  "coreCommit": "2245496d5aebb9351dc05a4d54995f94007051a2",
+  "gameplayTested": false,
+  "databaseImport": true,
+  "files": [
+    {
+      "sha256": "b1f1418972802b1b47a3dc1aceb810e76d45c2ed048bc350104fadaa6e05812f",
+      "name": "bnetserver.exe"
+    },
+    {
+      "sha256": "b53dcc477ad0ff6f3c204ff4d172e56c9c0d9869fca9c548bc4c8695fd210b7c",
+      "name": "build.json"
+    },
+    {
+      "sha256": "cb94828d5828bdc035207b348bb9159e80488e6623107bc69312c9eb3941b081",
+      "name": "legacy.dll"
+    },
+    {
+      "sha256": "81bc67d537fcd320d8ede1c5a49506629f0fd04e42ec7e9b0bab70a822d4fba5",
+      "name": "libcrypto-3-x64.dll"
+    },
+    {
+      "sha256": "5a605d438c11f0dfb5894d0afd3725d99b20024fb1d8957fdbb8278dff7c3ea2",
+      "name": "libmysql.dll"
+    },
+    {
+      "sha256": "0242e31713fa090d75c0cc2e17c4ee2cbc3a27ca53f7a45729f30983d593bcb1",
+      "name": "libssl-3-x64.dll"
+    },
+    {
+      "sha256": "a87367b9680095bf202544d5367c5ea5f63800784817b32a32438385fd7dc56b",
+      "name": "mapextractor.exe"
+    },
+    {
+      "sha256": "675d7be5e5f7e10638ebcbf6f6bd0c75019fbf0f3e36ce13bb973c49c88df403",
+      "name": "mmaps_generator.exe"
+    },
+    {
+      "sha256": "16d2a6bc6e286db7f47c0f61c9015900bbbc7b671670929cbf3003e5a0a8bfa4",
+      "name": "openssl_ed25519.dll"
+    },
+    {
+      "sha256": "9074dcd7c73f30a1a37d16d03b2c322fd697594f4afc9b57f248b49cabf6cd31",
+      "name": "vmap4assembler.exe"
+    },
+    {
+      "sha256": "6db7d731e728b78e3d4a823d0a0e91ef68823e764ffbe955e4b20adad518baf7",
+      "name": "vmap4extractor.exe"
+    },
+    {
+      "sha256": "71494e1dd8654fab679569128a25e766c2f6c4c49d2a2597755e23255da34022",
+      "name": "worldserver.exe"
+    }
+  ],
+  "readiness": {
+    "ready": true,
+    "gameplayVerified": false,
+    "checks": [
+      {
+        "name": "auth_build",
+        "value": 1,
+        "passed": true
+      },
+      {
+        "name": "human_warrior_start",
+        "value": 1,
+        "passed": true
+      },
+      {
+        "name": "hostile_spawns",
+        "value": 74,
+        "passed": true
+      },
+      {
+        "name": "loot_entries",
+        "value": 3,
+        "passed": true
+      },
+      {
+        "name": "kill_quest",
+        "value": 1,
+        "passed": true
+      }
+    ]
+  },
+  "gameClientTested": false,
+  "clientVersion": "12.1.5.70575",
+  "patchSha256": "487e2a2d502ac732ca7889d17d43398ca718ea957bde683dafb130fbb9ba30f3",
+  "coreTests": true,
+  "runner": "Windows",
+  "runId": "40763087703",
+  "bnetRest": true
+}
