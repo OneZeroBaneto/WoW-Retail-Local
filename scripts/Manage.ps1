@@ -37,7 +37,7 @@ try {
                 else { $vs=Invoke-Native $vswhere @('-latest','-products','*','-version','[17.4,18.0)','-requires','Microsoft.VisualStudio.Component.VC.Tools.x86.x64','-property','installationPath') -Capture; if(!$vs){$failures.Add('Visual Studio 2022 C++ tools missing.')} }
                 try{Require-File (Join-Path $s.boostRoot 'boost/version.hpp')}catch{$failures.Add($_.Exception.Message)}
                 $client=Join-Path $s.clientRoot $p.client.relativeExe
-                try {Require-File $client; Assert-ClientVersion $p ([Diagnostics.FileVersionInfo]::GetVersionInfo($client).FileVersion); $null=Read-CascProduct $s.clientRoot $p.client.version}catch{$failures.Add($_.Exception.Message)}
+                try {Require-File $client; Assert-ClientVersion $p (Get-ClientExecutableVersion $client); $null=Read-CascProduct $s.clientRoot $p.client.version}catch{$failures.Add($_.Exception.Message)}
             }
         }
         foreach($check in @({Assert-SourceReady (Join-Path $Root 'vendor/core') $p.core.commit (Get-ConsolePatch $Root $p)},{Assert-BuildReady $Root $p},{Assert-DataReady $Root $p})) {try{& $check}catch{$failures.Add($_.Exception.Message)}}

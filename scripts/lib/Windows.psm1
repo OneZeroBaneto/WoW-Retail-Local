@@ -10,6 +10,11 @@ function Require-File([string]$File) {
     if (!(Test-Path -LiteralPath $File -PathType Leaf)) { throw "Missing file: $File" }
 }
 function Get-MySQLTool($Settings,[string]$Name) { return Join-Path $Settings.mysqlRoot "bin/$Name.exe" }
+function Get-ClientExecutableVersion([string]$Path) {
+    Require-File $Path
+    $version=[Diagnostics.FileVersionInfo]::GetVersionInfo($Path)
+    return ConvertTo-ClientVersion $version.FileVersion $version.ProductVersion
+}
 function Prepare-CoreSource([string]$Root,$Profile) {
     $source=Join-Path $Root 'vendor/core'
     $patch=Get-ConsolePatch $Root $Profile
@@ -85,7 +90,7 @@ function Extract-ClientData([string]$Root,$Profile,$Settings) {
     Assert-BuildReady $Root $Profile
     $exe=Join-Path $Settings.clientRoot $Profile.client.relativeExe
     Require-File $exe
-    Assert-ClientVersion $Profile ([Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion)
+    Assert-ClientVersion $Profile (Get-ClientExecutableVersion $exe)
     $product=Read-CascProduct $Settings.clientRoot $Profile.client.version
     $stage=Join-Path $Root ('runtime/extract-'+[guid]::NewGuid())
     New-Item -ItemType Directory $stage | Out-Null
@@ -107,6 +112,24 @@ function Extract-ClientData([string]$Root,$Profile,$Settings) {
 function Invoke-LocalSQL([string]$Root,$Settings,[string]$Sql) {
     $connection=Get-LocalMySQLConnection $Root (Read-Profile $Root)
     Invoke-Native (Get-MySQLTool $Settings 'mysql') ($connection.Arguments+@('--batch')) -Environment $connection.Environment -InputText $Sql -Capture | Out-Null
+}
+function Invoke-LocalQuery([string]$Root,$Settings,[string]$Sql) {
+    $connection=Get-LocalMySQLConnection $Root (Read-Profile $Root)
+    return Invoke-Native (Get-MySQLTool $Settings 'mysql') ($connection.Arguments+@('--batch','--skip-column-names','--raw')) -Environment $connection.Environment -InputText $Sql -Capture
+}
+function Invoke-OfflineDatabase([string]$Root,$Profile,$Settings,[scriptblock]$Operation) {
+    $guard=[IO.File]::Open((Join-Path $Root 'runtime/instance.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+    $job=$null
+    try {
+        Assert-PortsFree @($Profile.database.port,$Profile.ports.bnet,$Profile.ports.rest,$Profile.ports.world)
+        Require-File (Join-Path $Root 'runtime/database.json')
+        $job=Start-OwnedProcess (Get-MySQLTool $Settings 'mysqld') @("--defaults-file=$Root/runtime/my.ini",'--no-monitor') "$Root/runtime" (Join-Path $Root ('runtime/logs/offline-mysql-'+[guid]::NewGuid()))
+        Wait-OwnedPort $job $Profile.database.port
+        & $Operation
+    } finally {
+        if($job){if(!$job.Process.HasExited){Stop-LocalMySQL $Root $Settings};$null=Complete-OwnedProcess $job 120}
+        $guard.Dispose()
+    }
 }
 function Stop-LocalMySQL([string]$Root,$Settings,[switch]$Passwordless) {
     $connection=Get-LocalMySQLConnection $Root (Read-Profile $Root) -Passwordless:$Passwordless

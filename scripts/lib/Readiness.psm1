@@ -38,6 +38,17 @@ function Resolve-PlayerAccountPlan([string]$Email,[bool]$Exists,$SavedCredential
     }
     return [pscustomobject]@{action=$(if($Exists){'verify'}else{'create'});credentials=$credentials}
 }
+function Invoke-PreparationStages($Profile,[string]$ClientVersion,[object[]]$Stages) {
+    Assert-ClientVersion $Profile $ClientVersion
+    foreach($stage in $Stages) {
+        $ready=$false
+        try{$ready=[bool](& $stage.ready)}catch{$ready=$false}
+        if($ready){Write-Host "READY: $($stage.name)";continue}
+        Write-Host "PREPARE: $($stage.name)"
+        & $stage.run
+        if(!(& $stage.ready)){throw "Preparation stage $($stage.name) did not satisfy its completion checks."}
+    }
+}
 function Get-BytesHash([byte[]]$Bytes) {return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()}
 function Write-AtomicBytes([string]$Path,[byte[]]$Bytes) {
     $tmp="$Path.$([guid]::NewGuid()).tmp"

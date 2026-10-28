@@ -109,6 +109,15 @@ log-error="$base/runtime/logs/mysql-error.log"
 function Assert-ClientVersion($Profile,[string]$Version) {
     if ($Version.Trim() -ne $Profile.client.version) { throw "Client $Version is not the pinned $($Profile.client.version)." }
 }
+function ConvertTo-ClientVersion([string]$FileVersion,[string]$ProductVersion) {
+    # Numeric VS_FIXEDFILEINFO components are only 16 bits; current WoW build IDs exceed 65535.
+    foreach($text in @($FileVersion,$ProductVersion)) {
+        if($text -match '^\s*(\d+)[.,]\s*(\d+)[.,]\s*(\d+)(?:[.,]\s*|\s*\(\s*)(\d+)\)?(?:\s.*)?$') {
+            return "$([int]$Matches[1]).$([int]$Matches[2]).$([int]$Matches[3]).$([int]$Matches[4])"
+        }
+    }
+    throw 'Cannot read an unambiguous complete WoW build from executable version strings.'
+}
 function Assert-FileHash([string]$Path,[string]$Sha256) {
     if ((Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash -ine $Sha256) { throw "SHA-256 mismatch: $Path" }
 }

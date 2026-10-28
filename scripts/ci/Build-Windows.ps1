@@ -6,6 +6,7 @@ $root=[IO.Directory]::GetParent([IO.Directory]::GetParent($PSScriptRoot).FullNam
 Import-Module "$root/scripts/lib/Workspace.psm1" -DisableNameChecking
 Import-Module "$root/scripts/lib/Process.psm1" -DisableNameChecking
 Import-Module "$root/scripts/lib/Windows.psm1" -DisableNameChecking
+Import-Module "$root/scripts/lib/Readiness.psm1" -DisableNameChecking
 Assert-Windows
 Import-Module NetTCPIP
 if($env:GITHUB_ACTIONS -ne 'true'){throw 'This script provisions only a disposable GitHub Actions Windows runner.'}
@@ -15,10 +16,15 @@ $installer=Join-Path $env:RUNNER_TEMP 'wow-openssl.exe'
 Invoke-WebRequest 'https://slproweb.com/download/Win64OpenSSL-3_5_9.exe' -OutFile $installer
 Assert-FileHash $installer '5fe338c81d62515df7292f16542a0eef2a29db3efc023cd5a8c08ec3c97027ae'
 Invoke-Native $installer @('/VERYSILENT','/SP-','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$opensslRoot")
+$mysqlArchive=Join-Path $env:RUNNER_TEMP 'mysql-8.0.46-winx64.zip'
+Invoke-WebRequest 'https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.46-winx64.zip' -OutFile $mysqlArchive
+Assert-FileHash $mysqlArchive '28e9eda019d88eff4478d811ea2110b83f02a3966be157fe91cc55def3ab0d4d'
+# Do not depend on the runner image's changing preinstalled MySQL version or service.
+Expand-Archive $mysqlArchive -DestinationPath 'C:/libs'
 $s=Initialize-Workspace $root
 $s.boostRoot=$BoostRoot
 $s.opensslRoot=$opensslRoot
-$s.mysqlRoot='C:/Program Files/MySQL/MySQL Server 8.0'
+$s.mysqlRoot='C:/libs/mysql-8.0.46-winx64'
 Write-JsonFile "$root/local/settings.json" $s
 $s=Initialize-Workspace $root
 & "$root/tests/Run.Tests.ps1"
@@ -34,6 +40,8 @@ try {
     Assert-PortsFree @($p.database.port,$p.ports.bnet,$p.ports.rest)
     $mysql=Start-OwnedProcess (Get-MySQLTool $s 'mysqld') @("--defaults-file=$root/runtime/my.ini",'--no-monitor') "$root/runtime" "$root/runtime/logs/ci-mysql"
     Wait-OwnedPort $mysql $p.database.port
+    $readiness=Test-ReadinessRows (Invoke-LocalQuery $root $s (Get-ReadinessSql $p))
+    if(!$readiness.ready){throw 'Installed database is missing the first-play content.'}
     $bnet=Start-OwnedProcess "$root/runtime/bnetserver.exe" @('-c',"$root/runtime/bnetserver.conf") "$root/runtime" "$root/runtime/logs/ci-bnet"
     Wait-OwnedPort $bnet $p.ports.bnet
     Wait-OwnedPort $bnet $p.ports.rest
@@ -56,6 +64,7 @@ $files=@(Get-ChildItem "$package/runtime" -File | ForEach-Object {@{name=$_.Name
 Write-JsonFile "$package/verification.json" @{
     coreCommit=$p.core.commit;patchSha256=$p.core.patchSha256;clientVersion=$p.client.version
     runner=$env:RUNNER_OS;runId=$env:GITHUB_RUN_ID;coreTests=$true;databaseImport=$true;bnetRest=$true
+    readiness=$readiness
     gameClientTested=$false;gameplayTested=$false;files=$files
 }
 Write-Host 'Windows build, core tests, DB import and BNet REST passed. Real client login and gameplay are still separate acceptance tests.'

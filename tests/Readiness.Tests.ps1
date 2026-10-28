@@ -64,5 +64,26 @@ try {
         Assert ($fresh.action -eq 'create') 'Fresh account not queued for creation.'
         Assert ($fresh.credentials.password -match '^[a-f0-9]{24}$') 'Generated password cannot safely pass the core console parser.'
     }
+    Check 'Setup rejects a wrong client before running work and resumes completed stages after failure' {
+        $p=[pscustomobject]@{client=[pscustomobject]@{version='12.1.5.70575'}}
+        $marker=Join-Path $temp 'completed-stage';$count=Join-Path $temp 'stage-calls'
+        $stages=@(
+            @{name='first';ready={Test-Path $marker};run={Add-Content $count 'first';Set-Content $marker 'done'}},
+            @{name='second';ready={$false};run={throw 'intentional later failure'}},
+            @{name='third';ready={$false};run={Add-Content $count 'must-not-run'}}
+        )
+        MustThrow { Invoke-PreparationStages $p '12.1.5.99999' $stages }
+        Assert (!(Test-Path $count)) 'Wrong client started preparation.'
+        MustThrow { Invoke-PreparationStages $p '12.1.5.70575' $stages }
+        MustThrow { Invoke-PreparationStages $p '12.1.5.70575' $stages }
+        Assert (@(Get-Content $count).Count -eq 1) 'Completed work was repeated or later work ran after failure.'
+    }
+    Check 'Client version parsing preserves build numbers above the 16-bit resource limit' {
+        Assert ((ConvertTo-ClientVersion '12.1.5.70575' '') -eq '12.1.5.70575') 'Large build was truncated.'
+        Assert ((ConvertTo-ClientVersion '12, 1, 5, 70575' '') -eq '12.1.5.70575') 'Comma version was rejected.'
+        Assert ((ConvertTo-ClientVersion '12.1.5 (70575)' '') -eq '12.1.5.70575') 'Formatted build was rejected.'
+        Assert ((ConvertTo-ClientVersion '' '12.1.5.70575') -eq '12.1.5.70575') 'Product version fallback failed.'
+        MustThrow { ConvertTo-ClientVersion 'unknown' 'unknown' }
+    }
 }finally{Remove-Item $temp -Recurse -Force}
 Write-Host "$script:passed readiness tests passed."
