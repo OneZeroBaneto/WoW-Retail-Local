@@ -17,7 +17,7 @@ pwsh -NoProfile -File scripts/Manage.ps1 -Action Configure
 notepad local/settings.json
 ```
 
-`clientRoot` ist der WoW-Hauptordner mit `.build.info` und `Data`, nicht nur der Unterordner mit der EXE. Der im Lockfile genannte Clientbuild muss vorhanden sein. `relativeExe` steht in `sources.lock.json`: Forever aktuell `_forever_/Wow.exe`; Retail `_retail_/Wow.exe`. Der CASC-Produktname wird aus der aktiven passenden Zeile der `.build.info` gelesen, nicht aus dem Verzeichnisnamen geraten.
+`clientRoot` ist der WoW-Hauptordner mit `.build.info` und `Data`, nicht nur der Unterordner mit der EXE. Der im Lockfile genannte Clientbuild muss vorhanden sein. `relativeExe` steht in `sources.lock.json`: Forever im dokumentierten Beta-Layout `_classic_beta_/WowB.exe`; Retail `_retail_/Wow.exe`. Bei einem anderen tatsächlichen Installationslayout nur `relativeExe` auf die vorhandene EXE anpassen, nicht die erwartete Buildnummer. Der CASC-Produktname wird aus der aktiven passenden Zeile der `.build.info` gelesen, nicht aus dem Verzeichnisnamen geraten.
 
 Eigene Pfade setzen, generierte Passwörter behalten und dann:
 
