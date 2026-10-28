@@ -28,19 +28,25 @@ function Prepare-CoreSource([string]$Root,$Profile) {
     Assert-SourceReady $stage $Profile.core.commit $patch
     Move-Item $stage $source
 }
-function Build-Core([string]$Root,$Profile,$Settings) {
+function Build-Core([string]$Root,$Profile,$Settings,[switch]$WithTests) {
     $source=Join-Path $Root 'vendor/core'
     Assert-SourceReady $source $Profile.core.commit (Get-ConsolePatch $Root $Profile)
     $buildMarker=Join-Path $Root 'runtime/build.json'
     if(Test-Path $buildMarker){Remove-Item $buildMarker}
     Require-File (Get-MySQLTool $Settings 'mysql')
     $configure=@('-S',$source,'-B',(Join-Path $Root 'build'),'-G','Visual Studio 17 2022','-A','x64',
-        '-DTOOLS=1','-DSCRIPTS=static','-DBUILD_TESTING=OFF','-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
+        '-DTOOLS=1','-DSCRIPTS=static',"-DBUILD_TESTING=$(if($WithTests){'ON'}else{'OFF'})",'-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
         "-DCMAKE_INSTALL_PREFIX=$(Join-Path $Root 'runtime')","-DBOOST_ROOT=$($Settings.boostRoot)",
         "-DOPENSSL_ROOT_DIR=$($Settings.opensslRoot)","-DMYSQL_INCLUDE_DIR=$(Join-Path $Settings.mysqlRoot 'include')",
         "-DMYSQL_LIBRARY=$(Join-Path $Settings.mysqlRoot 'lib/libmysql.lib')","-DMYSQL_EXECUTABLE=$(Get-MySQLTool $Settings 'mysql')")
     Invoke-Native $Settings.cmake $configure
     Invoke-Native $Settings.cmake @('--build',(Join-Path $Root 'build'),'--config','Release','--parallel','2')
+    if($WithTests) {
+        $testPrograms=@(Get-ChildItem (Join-Path $Root 'build') -Recurse -File -Filter 'tests.exe' | Where-Object { $_.DirectoryName -match '[\\/]Release$' })
+        if($testPrograms.Count -ne 1){throw 'Expected one compiled core test executable.'}
+        Install-RuntimeLibraries $Settings $testPrograms[0].DirectoryName
+        Invoke-Native 'ctest' @('--test-dir',(Join-Path $Root 'build'),'-C','Release','--output-on-failure','--no-tests=error')
+    }
     Invoke-Native $Settings.cmake @('--install',(Join-Path $Root 'build'),'--config','Release')
     foreach ($exe in @('worldserver','bnetserver','mapextractor','vmap4extractor','vmap4assembler','mmaps_generator')) { Require-File (Join-Path $Root "runtime/$exe.exe") }
     Install-RuntimeLibraries $Settings (Join-Path $Root 'runtime')

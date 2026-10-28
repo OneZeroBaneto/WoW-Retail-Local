@@ -1,0 +1,31 @@
+name: Build and check native Windows server
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-server-build
+  cancel-in-progress: false
+jobs:
+  windows-server:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: MarkusJx/install-boost@v2
+        id: boost
+        with:
+          boost_version: 1.84.0
+          link: static
+          platform_version: 2022
+          toolset: msvc
+      - name: Build core, run its tests, import database and test BNet REST
+        shell: pwsh
+        run: ./scripts/ci/Build-Windows.ps1 -BoostRoot '${{ steps.boost.outputs.BOOST_ROOT }}'
+      - name: Upload server binaries and non-secret verification record
+        uses: actions/upload-artifact@v4
+        with:
+          name: WoW-Retail-Windows-Server
+          path: dist/windows-server/
+          if-no-files-found: error
+          retention-days: 14

@@ -194,6 +194,11 @@ function Install-RuntimeLibraries($Settings,[string]$Runtime) {
         if(!$found.Count){throw "Missing runtime library $name. Install the full matching x64 dependency, then retry Build."}
         $selected[$name]=$found[0]
     }
+    # MySQL may depend on OpenSSL 1.1 while the core uses OpenSSL 3.
+    # Preserve both families; selected OpenSSL libraries take precedence for identical names.
+    foreach($file in @(Get-ChildItem (Join-Path $Settings.mysqlRoot 'bin') -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^lib(crypto|ssl).*\.dll$' })) {
+        Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $Runtime $file.Name) -Force
+    }
     foreach($name in $selected.Keys){Copy-Item -LiteralPath $selected[$name] -Destination (Join-Path $Runtime $name) -Force}
 }
 function Read-CascProduct([string]$ClientRoot,[string]$Version) {

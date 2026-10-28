@@ -197,14 +197,19 @@ try {
     }
     Check 'Runtime libraries include the legacy provider and fail before copying incomplete dependencies' {
         $deps=Join-Path $temp 'deps';$target=Join-Path $temp 'dll-runtime'
-        foreach($dir in @("$deps/mysql/lib","$deps/openssl/bin","$deps/openssl/lib/ossl-modules",$target)){New-Item -ItemType Directory $dir -Force | Out-Null}
+        foreach($dir in @("$deps/mysql/lib","$deps/mysql/bin","$deps/openssl/bin","$deps/openssl/lib/ossl-modules",$target)){New-Item -ItemType Directory $dir -Force | Out-Null}
         $settings=@{mysqlRoot="$deps/mysql";opensslRoot="$deps/openssl"}
         foreach($file in @('mysql/lib/libmysql.dll','openssl/bin/libcrypto-3-x64.dll','openssl/bin/libssl-3-x64.dll')){Set-Content "$deps/$file" $file}
         MustThrow { Install-RuntimeLibraries $settings $target }
         Assert (@(Get-ChildItem $target).Count -eq 0) 'Partial dependency set was installed.'
         Set-Content "$deps/openssl/lib/ossl-modules/legacy.dll" 'legacy-provider'
+        Set-Content "$deps/mysql/bin/libcrypto-1_1-x64.dll" 'mysql-crypto-dependency'
+        Set-Content "$deps/mysql/bin/libssl-1_1-x64.dll" 'mysql-ssl-dependency'
+        Set-Content "$deps/mysql/bin/libcrypto-3-x64.dll" 'old-mysql-copy'
         Install-RuntimeLibraries $settings $target
-        Assert (@(Get-ChildItem $target -File).Count -eq 4) 'Runtime DLLs missing.'
+        Assert (Test-Path "$target/libcrypto-1_1-x64.dll") 'MySQL transitive crypto DLL was omitted.'
+        Assert (Test-Path "$target/libssl-1_1-x64.dll") 'MySQL transitive SSL DLL was omitted.'
+        Assert ((Get-Content "$target/libcrypto-3-x64.dll" -Raw).Trim() -eq 'openssl/bin/libcrypto-3-x64.dll') 'Old MySQL copy replaced selected OpenSSL library.'
         Assert ((Get-Content "$target/legacy.dll" -Raw).Trim() -eq 'legacy-provider') 'Wrong legacy provider copied.'
     }
 } finally { if (Test-Path $temp) { Remove-Item $temp -Recurse -Force } }

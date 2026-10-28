@@ -15,7 +15,9 @@ jobs:
         run: ./tests/Parse-All.ps1
       - name: Portable behavior and process tests
         shell: pwsh
-        run: ./tests/Run.Tests.ps1
+        run: |
+          ./tests/Run.Tests.ps1
+          ./tests/Readiness.Tests.ps1
       - name: Pinned C++ console through real Windows pipes
         shell: cmd
         run: |
