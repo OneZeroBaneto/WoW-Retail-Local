@@ -8,3 +8,5 @@
 .superpowers/
 .DS_Store
 *.zip
+
+/diagnostic-summary.json

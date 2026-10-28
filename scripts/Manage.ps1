@@ -26,21 +26,26 @@ try {
     if($Action -eq 'Check') {
         Write-Host "Edition: $($p.edition); target client: $($p.client.version); source: $($p.core.commit)"
         $failures=[Collections.Generic.List[string]]::new()
+        $buildReady=$false
+        try{Assert-BuildReady $Root $p;$buildReady=$true}catch{$failures.Add($_.Exception.Message)}
         if(!$IsWindows){$failures.Add('Windows x64 is required for build/server/client execution.')}
         try{$s=Read-LocalSettings $Root}catch{$failures.Add('Run Configure and set local Windows paths.');$s=$null}
         if($s) {
             foreach($tool in @((Get-MySQLTool $s 'mysqld'),(Get-MySQLTool $s 'mysql'),(Get-MySQLTool $s 'mysqladmin'),$s.sevenZip,(Join-Path $s.opensslRoot 'bin/openssl.exe'))){if(!(Test-Path $tool)){$failures.Add("Missing: $tool")}}
-            foreach($exe in @('git',$s.cmake)){if(!(Get-Command $exe -ErrorAction SilentlyContinue)){$failures.Add("Missing command: $exe")}}
+            $commands=@('git');if(!$buildReady){$commands+=@($s.cmake)}
+            foreach($exe in $commands){if(!(Get-Command $exe -ErrorAction SilentlyContinue)){$failures.Add("Missing command: $exe")}}
             if($IsWindows) {
+                if(!$buildReady){
                 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
                 if(!(Test-Path $vswhere)){$failures.Add('Install Visual Studio 2022 with Desktop C++ workload.')}
                 else { $vs=Invoke-Native $vswhere @('-latest','-products','*','-version','[17.4,18.0)','-requires','Microsoft.VisualStudio.Component.VC.Tools.x86.x64','-property','installationPath') -Capture; if(!$vs){$failures.Add('Visual Studio 2022 C++ tools missing.')} }
                 try{Require-File (Join-Path $s.boostRoot 'boost/version.hpp')}catch{$failures.Add($_.Exception.Message)}
+                }
                 $client=Join-Path $s.clientRoot $p.client.relativeExe
                 try {Require-File $client; Assert-ClientVersion $p (Get-ClientExecutableVersion $client); $null=Read-CascProduct $s.clientRoot $p.client.version}catch{$failures.Add($_.Exception.Message)}
             }
         }
-        foreach($check in @({Assert-SourceReady (Join-Path $Root 'vendor/core') $p.core.commit (Get-ConsolePatch $Root $p)},{Assert-BuildReady $Root $p},{Assert-DataReady $Root $p})) {try{& $check}catch{$failures.Add($_.Exception.Message)}}
+        foreach($check in @({Assert-SourceReady (Join-Path $Root 'vendor/core') $p.core.commit (Get-ConsolePatch $Root $p)},{Assert-DataReady $Root $p})) {try{& $check}catch{$failures.Add($_.Exception.Message)}}
         foreach($f in @('runtime/database.json','runtime/certs/server.crt','runtime/certs/server.key')){if(!(Test-Path (Join-Path $Root $f))){$failures.Add("Not prepared: $f")}}
         if($failures.Count){foreach($f in $failures){Write-Host "OPEN: $f"};exit 2}
         Write-Host 'Files/build metadata are ready. Windows launch and gameplay are separate checks.';exit 0

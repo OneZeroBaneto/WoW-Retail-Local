@@ -35,15 +35,27 @@ try {
         Restore-ClientPortal $config $backup
         Assert ([Convert]::ToHexString([IO.File]::ReadAllBytes($config)) -eq [Convert]::ToHexString($original)) 'Original bytes were not restored.'
     }
-    Check 'New client settings are removed on restore, later user edits are preserved' {
+    Check 'Client can relaunch after WoW saves settings and restore preserves those settings' {
         $config=Join-Path $temp 'new/Config.wtf';$backup=Join-Path $temp 'new-backup'
         Set-LocalClientPortal $config $backup
         Restore-ClientPortal $config $backup
         Assert (!(Test-Path $config)) 'New file not removed by restore.'
         Set-LocalClientPortal $config $backup
         Add-Content $config 'SET locale "frFR"'
-        MustThrow { Restore-ClientPortal $config $backup }
+        Set-LocalClientPortal $config $backup
+        Restore-ClientPortal $config $backup
         Assert ((Get-Content $config -Raw).Contains('frFR')) 'Later user edit lost.'
+        Assert (!(Get-Content $config -Raw).Contains('portal')) 'Added local portal was not removed.'
+        Set-Content $config "SET portal `"EU`"`nSET gxWindow `"1`""
+        Set-LocalClientPortal $config $backup
+        Add-Content $config 'SET locale "deDE"'
+        Restore-ClientPortal $config $backup
+        Assert ((Get-Content $config -Raw).Contains('SET portal "EU"')) 'Original portal not restored.'
+        Assert ((Get-Content $config -Raw).Contains('deDE')) 'Saved game preference lost.'
+        Set-LocalClientPortal $config $backup
+        Set-Content $config 'SET portal "another-server"'
+        MustThrow { Restore-ClientPortal $config $backup }
+        MustThrow { Set-LocalClientPortal $config $backup }
     }
     Check 'Client portal refuses a duplicate conflicting portal and unsupported configuration encoding' {
         $config=Join-Path $temp 'duplicate.wtf'

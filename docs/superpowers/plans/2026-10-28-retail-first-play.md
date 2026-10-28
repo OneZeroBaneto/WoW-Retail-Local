@@ -15,7 +15,7 @@
 
 ## Review Focus
 - Missing MySQL dependent OpenSSL DLLs must be copied before OpenSSL's selected libraries.
-- Existing client portal settings must be backed up and restored exactly; reject changed files on restore.
+- Existing client portal settings must be backed up. Restore unchanged files exactly; preserve later non-portal preferences and refuse a conflicting portal.
 - Existing game accounts cannot have their password silently replaced.
 - Fresh setup can resume after a completed stage; failed or stale stages are not success.
 - Packages/diagnostics must omit secrets and must not call untested gameplay passed.
@@ -42,3 +42,5 @@ Interfaces: setup stages consume existing Manage actions; account creation uses 
 - [ ] Run portable suites and native console probe; independent final review; correct material findings; regenerate ZIPs and state remaining Windows/client tests.
 
 Ruling: user already authorized implementation. Continue inline; no new design approval required. Existing codex/windows-preparation branch is isolated and clean at dee9425.
+
+Ruling: WoW writes settings on exit. Preserve those later preferences and restore only the owned portal when necessary; rejecting every changed file would prevent normal relaunch and restore. Conflicting portals remain protected. Regression observed failing and then passing.

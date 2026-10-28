@@ -2,20 +2,25 @@
 
 Ein eigenes Windows-x64-Projekt für einen lokalen Retail-Testserver. Entwickelt auf macOS; Server, MySQL, Extraktoren und WoW laufen auf Windows. Die Versionen stehen in `sources.lock.json`. Die Serverquelle wird beim Vorbereiten auf genau diesen Commit heruntergeladen.
 
-**Status:** PowerShell-Vorbereitung und portable Tests vorhanden. Windows-Kompilierung, erste Datenbankinstallation, Clientlogin und Gameplay sind noch nicht abgenommen. Dieses Repository enthält keine fertigen Server-Binaries, keine Spieldaten und keinen WoW-Client.
+**Ziel für den ersten Test:** Retail **12.1.5.70575**, Mensch/Krieger in Nordhain. Setup, normaler Account, reversible Client-Konfiguration und konkrete Datenprüfung sind vorbereitet. Die Windows-Skript- und Konsolentests liefen erfolgreich; der vollständige Windows-Build mit Datenbankprüfung läuft über GitHub Actions. Clientlogin und Gameplay sind noch nicht abgenommen. Siehe [Prüfstand](docs/VALIDATION.md).
+
+**Hier beginnen: [FIRST-PLAY.md](docs/FIRST-PLAY.md).** Das Repository enthält Quellcode und Vorbereitungsskripte. Fertige Serverpakete werden nur von erfolgreichen [Windows-Builds](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/workflows/windows-build.yml) als separates Artifact bereitgestellt. Kein WoW-Client oder extrahierte Spieldaten sind enthalten.
 
 Retail hat erhebliche Inhaltslücken; die [offizielle Core-Dokumentation](https://trinitycore.info/install/Core-Installation) weist auf wenig Spielinhalt auf diesem Zweig hin. Login und vorhandene Systeme ergeben keine vollständige Retail-Kampagne. Die erste praktische Abnahme sollte sich auf eine konkrete Klasse, Queststrecke und Instanz begrenzen.
 
 ## Auf Windows beginnen
 
-1. Dieses komplette Repository nach `C:\WoW-Retail-Local` kopieren oder dort entpacken. Auch Pfade mit Leerzeichen werden unterstützt.
-2. Die Voraussetzungen und Schritte in [WINDOWS-SETUP.md](docs/WINDOWS-SETUP.md) abarbeiten. `Configure.bat` legt persönliche Einstellungen an; danach die Windows-Pfade in `local/settings.json` setzen und erneut konfigurieren.
-3. Quelle abrufen, Server bauen, Datenbankpaket prüfen, Daten extrahieren und die lokale Datenbank vorbereiten.
-4. `Start.bat` lässt die Server in seinem Fenster laufen. `Console.bat` sendet Befehle, `Stop.bat` fordert einen sauberen Shutdown an. `Backup.bat` kopiert die Daten nur bei gestoppten Servern.
-5. Die [Windows- und Spielabnahme](docs/WINDOWS-ACCEPTANCE.md) durchführen und Ergebnisse mit Buildnummer festhalten.
+1. [FIRST-PLAY.md](docs/FIRST-PLAY.md) lesen und den exakten Clientbuild prüfen.
+2. `Configure.bat`, lokale Windows-Pfade setzen, anschließend `Setup.bat`.
+3. `Start.bat` → `Account.bat` → `Client.bat` und die konkrete Spielabnahme durchführen.
+4. Mit `Stop.bat` sauber stoppen; `Backup.bat` sichert den Offline-Zustand.
 
 | Datei | Zweck |
 | --- | --- |
+| `Setup.bat` | Fehlende Vorbereitungsschritte ausführen und Nordhain-Profil aktivieren |
+| `Account.bat` | Normalen Account erstellen und am lokalen BNet-Dienst prüfen |
+| `Client.bat` / `Restore-Client.bat` | Geprüften Launcher starten / bisheriges Portal wiederherstellen |
+| `CheckGame.bat` / `Diagnose.bat` | Echte Startdaten prüfen / Diagnose ohne Geheimnisse schreiben |
 | `Configure.bat` | Persönliche Pfade/Zugangsdaten und Konfigurationen erzeugen |
 | `Check.bat` | Fehlende Voraussetzungen anzeigen; Exit 2 bedeutet offene Punkte |
 | `Start.bat` | Eigenen MySQL-, World- und BNet-Prozess starten; Fenster offen lassen |
@@ -42,10 +47,11 @@ Die übernommenen Dateien unter `config/upstream` stammen unverändert aus dem f
 
 ```powershell
 pwsh -NoProfile -File tests/Run.Tests.ps1
+pwsh -NoProfile -File tests/Readiness.Tests.ps1
 pwsh -NoProfile -File tests/Parse-All.ps1
 python tests/ConsoleProbe.py
 ```
 
-Die PowerShell-Prüfungen laufen auf Mac und Windows. Der C++-Konsolentest benötigt auf Mac `clang++` und auf Windows eine x64 Developer Command Prompt für Visual Studio plus Python 3. Die GitHub-Actions-Datei bereitet beide Prüfungen unter Windows vor, läuft aber erst nach Upload ins eigene Repository. Ein grüner Skript-/Konsolentest ersetzt weder den vollständigen Core-Build noch den Client-/Spieltest. Den tatsächlich geprüften Stand beschreibt [VALIDATION.md](docs/VALIDATION.md).
+Die PowerShell-Prüfungen laufen auf Mac und Windows. Der C++-Konsolentest benötigt auf Mac `clang++` und auf Windows eine x64 Developer Command Prompt für Visual Studio plus Python 3. Die GitHub-Actions-Prüfungen laufen im öffentlichen Repository auf kostenlosen Standard-Windows-Runnern. Ein grüner Skript-/Konsolentest ersetzt weder den vollständigen Core-Build noch den Client-/Spieltest. Den tatsächlich geprüften Stand beschreibt [VALIDATION.md](docs/VALIDATION.md).
 
 Lokale Zustände in `local`, `runtime`, `downloads`, `build`, `vendor` und `backups` sind ignoriert. Sicherungen enthalten Passwörter und private Schlüssel. Für den Transfer an andere Personen nur das Repository bzw. das erzeugte **Source-ZIP** verwenden.

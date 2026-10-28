@@ -4,9 +4,9 @@
 
 Ziel: Windows x64, empfohlen Windows 11; native Ausführung, ohne Docker oder WSL. Benötigt werden PowerShell 7.4+, Git, CMake 3.24+, Visual Studio 2022 ab 17.4 mit „Desktopentwicklung mit C++“ und Windows SDK, Boost x64 für MSVC 14.3, OpenSSL 3 x64, MySQL Server 8.0 ab 8.0.34 inklusive Client/Entwicklungsdateien und 7-Zip. Es genügt die MySQL-Installation; dieses Projekt verwendet einen eigenen Datenordner und startet seine eigene Instanz. Ein bereits vorhandener MySQL-Windowsdienst wird nicht verändert.
 
-Die Defaultpfade erwarten Boost 1.86 unter `C:/local/boost_1_86_0` und OpenSSL unter `C:/Program Files/OpenSSL-Win64`. Andere passende Installationspfade lassen sich in den lokalen Einstellungen setzen. Laufzeit-DLLs müssen zur x64-Buildumgebung passen. Die erste Windows-Kompilierung steht noch aus.
+Die Defaultpfade erwarten Boost 1.86 unter `C:/local/boost_1_86_0` und OpenSSL unter `C:/Program Files/OpenSSL-Win64`. Andere passende Installationspfade lassen sich in den lokalen Einstellungen setzen. Laufzeit-DLLs müssen zur x64-Buildumgebung passen. Die CI verwendet reproduzierbar Boost 1.84.0, OpenSSL 3.5.9 und MySQL 8.0.46; den tatsächlichen Laufstatus dokumentiert [VALIDATION.md](VALIDATION.md). Mit einem fertigen Serverpaket entfallen Visual Studio, CMake und Boost.
 
-Quelle: https://trinitycore.info/install/requirements/windows
+Quellen und Downloads: [TrinityCore Windows-Anforderungen](https://trinitycore.info/install/requirements/windows), [PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows), [Git für Windows](https://git-scm.com/download/win), [7-Zip](https://www.7-zip.org/), [MySQL 8.0.46 ZIP](https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.46-winx64.zip), [OpenSSL 3.5.9 x64 vollständig](https://slproweb.com/download/Win64OpenSSL-3_5_9.exe). Das MySQL-ZIP einfach in einen eigenen Ordner entpacken und `mysqlRoot` darauf setzen; keinen Dienst anlegen. Erwarteter SHA-256 des ZIPs: `28e9eda019d88eff4478d811ea2110b83f02a3966be157fe91cc55def3ab0d4d`. OpenSSL-Installer-SHA-256: `5fe338c81d62515df7292f16542a0eef2a29db3efc023cd5a8c08ec3c97027ae`. Bei Verwendung vorgebauter EXEs außerdem die [Microsoft VC++ x64 Runtime](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist) installieren, falls noch nicht vorhanden.
 
 ## Reihenfolge
 
@@ -38,7 +38,7 @@ pwsh -NoProfile -File scripts/Manage.ps1 -Action Certificates
 ```
 
 - `Source` lädt den festgelegten Commit und wendet ausschließlich den per SHA-256 festgelegten Patch für Windows-Konsolenpipes an. Andere Änderungen werden abgelehnt und nicht zurückgesetzt. Details: [CORE-PATCH.md](CORE-PATCH.md).
-- `Build` kompiliert Release x64 mit zwei parallelen Jobs und installiert nach `runtime`. Anschließend werden `libmysql.dll`, `libcrypto-3-x64.dll`, `libssl-3-x64.dll` und der OpenSSL-Provider `legacy.dll` aus den eingestellten Installationen übernommen. Beide Server müssen `--version` erfolgreich ausführen und OpenSSL muss den lokalen Legacy-Provider laden, bevor ein Buildmarker geschrieben wird. Der Vorgang kann längere Zeit dauern.
+- `Build` kompiliert Release x64 mit zwei parallelen Jobs und installiert nach `runtime`. Vor der Testentdeckung und nach der Installation werden MySQLs eigene SSL-Abhängigkeiten sowie `libmysql.dll`, `libcrypto-3-x64.dll`, `libssl-3-x64.dll` und der OpenSSL-Provider `legacy.dll` aus den eingestellten Installationen übernommen. Beide Server müssen `--version` erfolgreich ausführen und OpenSSL muss den lokalen Legacy-Provider laden, bevor ein Buildmarker geschrieben wird. Der Vorgang kann längere Zeit dauern.
 - `DatabaseFiles` lädt das festgelegte 7z-Archiv, prüft dessen SHA-256 und übernimmt nur die beiden erwarteten SQL-Dateien.
 - `Extract` prüft die EXE-Version, extrahiert Karten/Tabellen/Kollision/Wegfindung in ein neues Arbeitsverzeichnis und übernimmt erst vollständige Verzeichnisse. Frühere Daten bleiben als `runtime/data-previous-*` erhalten. Die Extraktion kann lange dauern.
 - `Database` initialisiert ausschließlich die eigene MySQL-Instanz, importiert die Daten und wendet die Updates des festen Core-Stands an. Das Updater-Konto hat Rechte nur auf die vier Projekt-Datenbanken. Danach wird MySQL wieder beendet. Der normale Spielstart führt keine Datenbankmigrationen aus.
@@ -46,41 +46,11 @@ pwsh -NoProfile -File scripts/Manage.ps1 -Action Certificates
 
 MySQL startet mit `--no-monitor`, damit der Supervisor den tatsächlichen Serverprozess anhand seiner PID prüfen kann. MySQL-Clientaufrufe bekommen explizit Host/Port/Benutzer und ein prozesslokales `MYSQL_TEST_LOGIN_FILE` auf eine nicht vorhandene Datei. Dadurch können gespeicherte Anmeldungen einer anderen MySQL-Installation die Verbindung nicht umleiten. Das gilt auch für den Core-Updater. Quellen: [MySQL unter Windows](https://dev.mysql.com/doc/refman/8.0/en/windows-installation.html), [MySQL-Optionsdateien](https://dev.mysql.com/doc/refman/8.0/en/option-files.html).
 
-## Clientanmeldung vorbereiten
+## Clientanmeldung und erster Start
 
-**Forever:** Der Core erwartet `trinity.actual.battle.net`. Auf dem Windows-Spielrechner die Datei `C:\Windows\System32\drivers\etc\hosts` mit Administratorrechten öffnen und eine einzelne Zeile ergänzen:
+Die aktuelle Anleitung steht in [FIRST-PLAY.md](FIRST-PLAY.md): Burralis-Launcher, lokales Portal, `Account.bat`, Mensch/Krieger in Nordhain und konkrete Spielabnahme. Forever wird in seinem separaten Projekt vorbereitet und benötigt einen eigenen passenden Client.
 
-```text
-127.0.0.1 trinity.actual.battle.net
-```
-
-Das eigene öffentliche CA-Zertifikat kann für den aktuellen Windows-Benutzer importiert werden:
-
-```powershell
-Import-Certificate -FilePath .\runtime\certs\ca.crt -CertStoreLocation Cert:\CurrentUser\Root
-```
-
-Den Pfad und Fingerabdruck des importierten Zertifikats für die spätere Entfernung notieren. Nur dieses selbst erzeugte Zertifikat verwenden. Keine fremden CA- oder Server-Private-Keys übernehmen. Der Aufbau ist ausschließlich lokal.
-
-Der [Forever Launcher](https://github.com/advocaite/foreverlauncher-releases/releases/tag/v2.4.2) muss auf den lokalen Server und den eigenen Client eingestellt werden. Die Kompatibilität mit dem festgelegten 70658-Client ist **noch auf Windows zu prüfen**. Die ältere Launcher-Veröffentlichung wird nicht automatisch als kompatibel behandelt oder ausgeführt. Ein Loginproblem ist ein Abnahmefehler, nicht durch Austausch der Buildnummer zu umgehen.
-
-**Retail:** Laut [TrinityCore-Clientanleitung](https://trinitycore.info/install/Client-Setup) ist ein passender Custom Launcher erforderlich, beispielsweise der dort verlinkte Arctium-Launcher. Auf den festgelegten Build achten und Portal `127.0.0.1` benutzen. Dieses Paket liefert noch keinen verifizierten Retail-Launcher. Den Blizzard-Originalclient separat erhalten; normale Battle.net-Updates dürfen den festgelegten Testclient nicht unbemerkt ersetzen.
-
-## Starten und Account anlegen
-
-```powershell
-.\Start.bat
-```
-
-Das Fenster offen lassen. Erst wenn es meldet, dass alle Dienste lokal lauschen, in einem zweiten Fenster `Console.bat` öffnen. Dort eingeben:
-
-```text
-bnetaccount create DEINNAME@LOCAL DEINPASSWORT
-```
-
-Das legt einen normalen Spielaccount an, keinen GM. Die Queuebestätigung allein ist keine Erfolgsmeldung: `runtime/logs/*world.out.log` auf das Ergebnis prüfen. Diese Logs und Konsolenverläufe können vertrauliche Inhalte enthalten und bleiben lokal. Für Administration kann man über dieselbe Konsole `.help` ohne führenden Punkt, also `help`, verwenden. Nicht ungeprüft GM-Rechte an Spielaccounts vergeben.
-
-Danach den passenden Launcher öffnen und den Login praktisch testen. `Check.bat` prüft Vorbereitung; es beweist keinen erfolgreichen Spielereintritt.
+`Setup.bat` führt die obigen Schritte mit Wiederaufnahme abgeschlossener Stufen aus. Ein vorhandener passender Windows-Build wird verwendet. Bei Bedarf bleiben die einzelnen `Manage.ps1`-Aktionen verfügbar. `Console.bat` erlaubt einzelne Worldserver-Befehle; das Ergebnis ist im lokalen Log zu prüfen, eine Queuebestätigung allein ist kein Ausführungserfolg.
 
 ## Stoppen, Sichern und Wiederherstellen
 

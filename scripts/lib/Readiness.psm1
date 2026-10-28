@@ -54,12 +54,23 @@ function Write-AtomicBytes([string]$Path,[byte[]]$Bytes) {
     $tmp="$Path.$([guid]::NewGuid()).tmp"
     [IO.File]::WriteAllBytes($tmp,$Bytes);[IO.File]::Move($tmp,$Path,$true)
 }
+function Read-ClientText([byte[]]$Bytes) {
+    try{$text=[Text.UTF8Encoding]::new($false,$true).GetString($Bytes)}catch{throw 'Client settings must be valid UTF-8; original file was not changed.'}
+    $bom=$text.StartsWith([string][char]0xFEFF,[StringComparison]::Ordinal)
+    if($bom){$text=$text.Substring(1)}
+    return [pscustomobject]@{text=$text;bom=$bom}
+}
+function Assert-LocalPortal([string]$Text) {
+    $matches=[regex]::Matches($Text,'(?im)^[\t ]*SET[\t ]+portal\b[^\r\n]*')
+    if($matches.Count -ne 1 -or $matches[0].Value -notmatch '^[\t ]*SET[\t ]+portal[\t ]+"127\.0\.0\.1"[\t ]*$'){throw 'Client portal changed after setup. Refusing to overwrite a different server setting.'}
+}
 function Set-LocalClientPortal([string]$ConfigPath,[string]$BackupDirectory) {
     $ConfigPath=[IO.Path]::GetFullPath($ConfigPath)
     $marker=Join-Path $BackupDirectory 'portal.json'
     if(Test-Path $marker) {
         $saved=Get-Content $marker -Raw | ConvertFrom-Json
-        if($saved.configPath -ne $ConfigPath -or !(Test-Path $ConfigPath) -or (Get-BytesHash ([IO.File]::ReadAllBytes($ConfigPath))) -ne $saved.localHash){throw 'Client config changed since portal setup. Preserve the change and resolve it before retrying.'}
+        if($saved.configPath -ne $ConfigPath -or !(Test-Path $ConfigPath)){throw 'Client config path changed since portal setup.'}
+        Assert-LocalPortal (Read-ClientText ([IO.File]::ReadAllBytes($ConfigPath))).text
         return
     }
     if((Test-Path $BackupDirectory) -and @(Get-ChildItem $BackupDirectory -Force).Count){throw 'Unrecognized portal backup already exists.'}
@@ -67,9 +78,7 @@ function Set-LocalClientPortal([string]$ConfigPath,[string]$BackupDirectory) {
     [byte[]]$bytes=@()
     if($existed){$bytes=[IO.File]::ReadAllBytes($ConfigPath)}
     $encoding=[Text.UTF8Encoding]::new($false,$true)
-    try{$text=$encoding.GetString($bytes)}catch{throw 'Client settings must be valid UTF-8; original file was not changed.'}
-    $bom=$text.StartsWith([string][char]0xFEFF,[StringComparison]::Ordinal)
-    if($bom){$text=$text.Substring(1)}
+    $decoded=Read-ClientText $bytes;$text=$decoded.text;$bom=$decoded.bom
     $pattern='(?im)^[\t ]*SET[\t ]+portal\b[^\r\n]*'
     $found=[regex]::Matches($text,$pattern)
     if($found.Count -gt 1){throw 'Multiple portal settings found. Original file was not changed.'}
@@ -88,14 +97,28 @@ function Set-LocalClientPortal([string]$ConfigPath,[string]$BackupDirectory) {
 function Restore-ClientPortal([string]$ConfigPath,[string]$BackupDirectory) {
     $ConfigPath=[IO.Path]::GetFullPath($ConfigPath)
     $marker=Join-Path $BackupDirectory 'portal.json';$saved=Get-Content $marker -Raw | ConvertFrom-Json
-    if($saved.configPath -ne $ConfigPath -or !(Test-Path $ConfigPath) -or (Get-BytesHash ([IO.File]::ReadAllBytes($ConfigPath))) -ne $saved.localHash){throw 'Client settings changed after setup. Refusing to overwrite later changes.'}
+    if($saved.configPath -ne $ConfigPath -or !(Test-Path $ConfigPath)){throw 'Client config path changed after setup.'}
+    $currentBytes=[IO.File]::ReadAllBytes($ConfigPath)
     $original=Join-Path $BackupDirectory 'original.wtf'
+    [byte[]]$bytes=@()
     if($saved.existed) {
         $bytes=[IO.File]::ReadAllBytes($original)
         if((Get-BytesHash $bytes) -ne $saved.originalHash){throw 'Original client backup hash mismatch.'}
-        Write-AtomicBytes $ConfigPath $bytes
-        Remove-Item $original
-    }else{Remove-Item $ConfigPath}
+    }
+    if((Get-BytesHash $currentBytes) -eq $saved.localHash) {
+        if($saved.existed){Write-AtomicBytes $ConfigPath $bytes}else{Remove-Item $ConfigPath}
+    }else{
+        # WoW saves unrelated settings on exit. Restore only the portal in that case.
+        $current=Read-ClientText $currentBytes
+        Assert-LocalPortal $current.text
+        $pattern='(?im)^[\t ]*SET[\t ]+portal\b[^\r\n]*'
+        $oldPortal=[regex]::Match((Read-ClientText $bytes).text,$pattern)
+        if($oldPortal.Success){$restored=[regex]::Replace($current.text,$pattern,[Text.RegularExpressions.MatchEvaluator]{param($m) $oldPortal.Value})}
+        else{$restored=[regex]::Replace($current.text,$pattern+'(?:\r?\n)?','')}
+        if($current.bom){$restored=([string][char]0xFEFF)+$restored}
+        Write-AtomicBytes $ConfigPath ([Text.UTF8Encoding]::new($false).GetBytes($restored))
+    }
+    if($saved.existed){Remove-Item $original}
     Remove-Item $marker
     if(!@(Get-ChildItem $BackupDirectory -Force).Count){Remove-Item $BackupDirectory}
 }
