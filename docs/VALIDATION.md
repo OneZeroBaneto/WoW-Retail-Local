@@ -8,7 +8,7 @@ Stand: 28.10.2026. Zielplattform Windows x64. Entwicklung auf macOS mit PowerShe
 | --- | --- |
 | `tests/Run.Tests.ps1` | 19 von 19 bestanden |
 | `tests/Readiness.Tests.ps1` | 8 von 8 bestanden: Datenlücken, Portal/Restore, nachträgliche Client-Einstellungen, Account-Erhalt, Setup-Wiederaufnahme, Buildnummern über 65535, gültige/mismatched/leere/abgelaufene Zertifikate |
-| `tests/Parse-All.ps1` | Alle 16 PowerShell-Dateien fehlerfrei geparst |
+| `tests/Parse-All.ps1` | Alle 17 PowerShell-Dateien fehlerfrei geparst |
 | `tests/ConsoleProbe.py` | Gepatchter Original-Konsolencode kompiliert, beide Pipe-Befehle und Antworten geprüft, beendet |
 | Ungepatchter Konsolencode | Erwarteter Fehler reproduziert: Exit 7, keine Kommandobearbeitung |
 | `Manage.ps1 -Action Check` auf Mac ohne lokale Einrichtung | Erwarteter Exit 2 mit offenen Windows-Voraussetzungen |
@@ -45,17 +45,21 @@ Negative Kontrollen in zurückgerollten Transaktionen entfernten jeweils Spawns,
 
 ## Windows-Nachweise
 
-- [Erfolgreicher Windows-Skript- und Konsolenlauf](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40756771453): portable Tests und gepatchter originaler C++-Konsolencode mit echtem Windows SDK und Prozesspipes.
+- [Erfolgreicher Windows-Skript- und Konsolenlauf](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40760448899): portable Tests und gepatchter originaler C++-Konsolencode mit echtem Windows SDK und Prozesspipes.
 - Der erste Vollbuild stoppte vor CMake wegen eines nicht mehr vorhandenen vorinstallierten MySQL-8.0-Pfads. Der Standard-Runner enthält inzwischen MySQL 8.4. Das Setup lädt jetzt MySQL 8.0.46 explizit und prüft SHA-256.
-- [Vollständiger Windows-Build mit CTest, DB-Import und BNet-REST-Prüfung](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40758932831): **bei diesem Dokumentstand noch in Arbeit**. Ein erfolgreiches Ergebnis wird erst nach Auswertung bestätigt. Die Paketdatei `verification.json` trägt die tatsächlich erreichten Prüfungen.
+- [Windows-Vollbuild 40758932831](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40758932831): Core und alle sechs EXEs erfolgreich gebaut/installiert, beide Server mit `--version` gestartet, **35 von 35 CTest-Tests bestanden**. Der Lauf scheiterte anschließend an zusammengezogenen MySQL-Argumenten in der PowerShell-Vorbereitung. Dieser Fehler wurde reproduziert und korrigiert; die Regression prüft jetzt getrennte Argumente statt bloßer Teilstrings.
+- [Native Windows-MySQL-Integration](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/runs/40762315740): **bestanden**. Eigene MySQL-8.0.46-Instanz in einem Pfad mit Leerzeichen initialisiert, Root-Passwort gesetzt, expliziten Port geprüft, SQL geschrieben/gelesen und sauber beendet.
+- Vollständiger erneuter TDB-Import und BNet-REST-Start stehen nach der Korrektur noch zur Auswertung an. `verification.json` im Binärpaket trennt Core-Tests, DB-Import, BNet-REST und Gameplay; ein Paket aus einem fehlgeschlagenen Lauf ist keine vollständige Abnahme.
 - Der [Upstream-Windows-Build desselben Core-Pins](https://github.com/TrinityCore/TrinityCore/actions/runs/40596069843) war erfolgreich; er enthält unseren Konsolenpatch und unsere DB-/REST-Abnahme nicht und ist daher kein Ersatz für den eigenen Lauf.
 
 ## Noch offen
 
-- Abschluss/Auswertung des eigenen vollständigen Windows-Builds, Core-Tests, MySQL-Erstinstallation und BNet-REST-Starts.
+- Abschluss/Auswertung des erneuten kompletten TDB-/Core-Update-Imports und BNet-REST-Starts nach dem bereits erfolgreichen Build und MySQL-Bootstrap.
 - Passender Windows-Spielclient, Clientdatenextraktion, Launcher-Kompatibilität, Accountprüfung im laufenden vollständigen Server, Clientlogin und Charaktererstellung.
 - Weltbeitritt, sichtbare Gegner, Kampf, Beute, Questfortschritt, Tod/Wiederbelebung.
 - Echter vollständiger Worldserver-Shutdown, Neustart/Persistenz, Backup und Restore auf Windows.
 - Weitere Gameplaypunkte aus [WINDOWS-ACCEPTANCE.md](WINDOWS-ACCEPTANCE.md).
 
 Der C++-Probe verwendet auf Mac simulierte Win32-Grenzfunktionen und eine kleine Spielwelt. Die Windows-CI verwendet dieselbe CLI-Datei mit echtem Windows SDK. Beides bleibt ein begrenzter Konsolentest. Ein grüner Build, ein vorhandener Spawn oder ein erfolgreicher HTTP-Endpunkt darf nicht als bestandener Spieltest bezeichnet werden.
+
+Die zusätzlich auf Mac über die Produktionsfunktion erzeugten Zertifikate beider Editionen wurden mit OpenSSL auf Kette und Loopback-IP geprüft; beide Prüfungen bestanden. Der eigene Test-MySQL-Container wurde sauber beendet, das eigene Colima-Profil gestoppt und der ursprüngliche Docker-Kontext beibehalten.

@@ -2,7 +2,7 @@
 
 Ein eigenes Windows-x64-Projekt für einen lokalen Retail-Testserver. Entwickelt auf macOS; Server, MySQL, Extraktoren und WoW laufen auf Windows. Die Versionen stehen in `sources.lock.json`. Die Serverquelle wird beim Vorbereiten auf genau diesen Commit heruntergeladen.
 
-**Ziel für den ersten Test:** Retail **12.1.5.70575**, Mensch/Krieger in Nordhain. Setup, normaler Account, reversible Client-Konfiguration und konkrete Datenprüfung sind vorbereitet. Die Windows-Skript- und Konsolentests liefen erfolgreich; der vollständige Windows-Build mit Datenbankprüfung läuft über GitHub Actions. Clientlogin und Gameplay sind noch nicht abgenommen. Siehe [Prüfstand](docs/VALIDATION.md).
+**Ziel für den ersten Test:** Retail **12.1.5.70575**, Mensch/Krieger in Nordhain. Setup, normaler Account, reversible Client-Konfiguration und konkrete Datenprüfung sind vorbereitet. Windows-Core-Build, 35 Core-Tests und ein echter MySQL-Bootstrap sind bestanden. Der vollständige Datenbankimport mit BNet-Start wird nach einer korrigierten MySQL-Argumentübergabe erneut geprüft. Clientlogin und Gameplay sind noch nicht abgenommen. Siehe [Prüfstand](docs/VALIDATION.md).
 
 **Hier beginnen: [FIRST-PLAY.md](docs/FIRST-PLAY.md).** Das Repository enthält Quellcode und Vorbereitungsskripte. Fertige Serverpakete werden nur von erfolgreichen [Windows-Builds](https://github.com/OneZeroBaneto/WoW-Retail-Local/actions/workflows/windows-build.yml) als separates Artifact bereitgestellt. Kein WoW-Client oder extrahierte Spieldaten sind enthalten.
 
