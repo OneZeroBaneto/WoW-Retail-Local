@@ -45,6 +45,10 @@ function Build-Core([string]$Root,$Profile,$Settings,[switch]$WithTests) {
         "-DOPENSSL_ROOT_DIR=$($Settings.opensslRoot)","-DMYSQL_INCLUDE_DIR=$(Join-Path $Settings.mysqlRoot 'include')",
         "-DMYSQL_LIBRARY=$(Join-Path $Settings.mysqlRoot 'lib/libmysql.lib')","-DMYSQL_EXECUTABLE=$(Get-MySQLTool $Settings 'mysql')")
     Invoke-Native $Settings.cmake $configure
+    # Catch discovers tests immediately after linking; dependencies must exist before that step.
+    $output=Join-Path $Root 'build/bin/Release'
+    New-Item -ItemType Directory $output -Force | Out-Null
+    Install-RuntimeLibraries $Settings $output
     Invoke-Native $Settings.cmake @('--build',(Join-Path $Root 'build'),'--config','Release','--parallel','2')
     if($WithTests) {
         $testPrograms=@(Get-ChildItem (Join-Path $Root 'build') -Recurse -File -Filter 'tests.exe' | Where-Object { $_.DirectoryName -match '[\\/]Release$' })
