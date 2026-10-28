@@ -1,6 +1,6 @@
 # Windows- und Spielabnahme
 
-Stand der Vorbereitung: **noch kein Windows- oder Gameplay-Pass**. Ergebnisse stets mit Windows-Version, Repo-Commit, Core-Commit, Clientbuild und Logpfad dokumentieren.
+Stand der Vorbereitung: Windows-Skript-/Konsolenprüfungen sind bestanden; vollständiger Core-/DB-Lauf und Gameplay haben jeweils eigene Nachweise in [VALIDATION.md](VALIDATION.md). Diese Liste dient zusätzlich der Abnahme auf dem tatsächlichen Windows-Spielrechner. Ergebnisse stets mit Windows-Version, Repo-Commit, Core-Commit, Clientbuild und Logpfad dokumentieren.
 
 ## Technischer Windows-Test
 
@@ -26,6 +26,6 @@ Mit wegwerfbaren Testaccounts und ohne GM-Abkürzungen prüfen:
 - [ ] Post mit Geld/Gegenständen; AH einstellen/kaufen/abbrechen, korrekte Zustellung nach Relog/Neustart.
 - [ ] Gewählte Berufe: sammeln, lernen, herstellen, Fortschritt speichern.
 - [ ] Ein konkret benannter Dungeon vollständig: Bosse, Mechaniken, Loot, Wipe/Rückkehr und Reset.
-- [ ] Forever: gewünschte Skyborne-/Zephras-Strecke gesondert; Retail: konkrete Klasse/Gebiet/Instanz benennen.
+- [ ] Weitere gewünschte Klassen/Gebiete/Instanzen jeweils konkret benennen und prüfen.
 
-Nicht automatisch abgedeckt: alle Klassen, Level-60-Verlauf, neue Raids, sämtliche Questketten, Retail-Kampagne, Mythic+ oder PvP. Dokumentierte Einschränkungen sind zulässig; Abstürze, ungespeicherter Fortschritt oder blockierende Kernabläufe sind kein „bestanden“.
+Nicht automatisch abgedeckt: alle Klassen, kompletter Level-Verlauf, neue Raids, sämtliche Questketten, Retail-Kampagne, Mythic+ oder PvP. Dokumentierte Einschränkungen sind zulässig; Abstürze, ungespeicherter Fortschritt oder blockierende Kernabläufe sind kein „bestanden“.
