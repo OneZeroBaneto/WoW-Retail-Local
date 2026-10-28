@@ -7,13 +7,13 @@ Stand: 28.10.2026. Zielplattform Windows x64. Entwicklung auf macOS mit PowerShe
 | Prüfung | Ergebnis |
 | --- | --- |
 | `tests/Run.Tests.ps1` | 19 von 19 bestanden |
-| `tests/Readiness.Tests.ps1` | 7 von 7 bestanden: Datenlücken, Portal/Restore, nachträgliche Client-Einstellungen, Account-Erhalt, Setup-Wiederaufnahme, Buildnummern über 65535 |
+| `tests/Readiness.Tests.ps1` | 8 von 8 bestanden: Datenlücken, Portal/Restore, nachträgliche Client-Einstellungen, Account-Erhalt, Setup-Wiederaufnahme, Buildnummern über 65535, gültige/mismatched/leere/abgelaufene Zertifikate |
 | `tests/Parse-All.ps1` | Alle 16 PowerShell-Dateien fehlerfrei geparst |
 | `tests/ConsoleProbe.py` | Gepatchter Original-Konsolencode kompiliert, beide Pipe-Befehle und Antworten geprüft, beendet |
 | Ungepatchter Konsolencode | Erwarteter Fehler reproduziert: Exit 7, keine Kommandobearbeitung |
 | `Manage.ps1 -Action Check` auf Mac ohne lokale Einrichtung | Erwarteter Exit 2 mit offenen Windows-Voraussetzungen |
 | `Build` / `Start` auf Mac | Erwarteter Exit 1; kein Runtime-Ordner und keine Zugangsdaten angelegt |
-| Unabhängige Nachprüfung | Vier konkrete Befunde korrigiert und erneut geprüft |
+| Unabhängige Nachprüfung | Ursprüngliche vier Befunde korrigiert. First-play-Nachprüfung: zusätzlich Zertifikats-Wiederaufnahmefehler reproduziert, korrigiert und Regression grün |
 
 Die 19 Tests prüfen Konfiguration und wiederholte Ausführung, getrennte Datenbankidentität, Pfade mit Leerzeichen, Secret-Erhalt, falsche Builds/Hashes, Shell-freie Prozessargumente, Exitfehler, Extraktionsmarker, echte Child-Prozesspipes, belegte Ports, unveränderte Fremdprozesse, Source-Pins, CASC-Metadaten, Offline-Snapshot-Inhalt, exakte Patchbindung, isolierte MySQL-Umgebung, echten lokalen Git-Fetch samt Patch und Wiederholung, vorhandene Zertifikate sowie Laufzeitbibliotheken. Sie verwenden temporäre synthetische Daten, keinen Spielclient und keine produktive MySQL-Instanz.
 

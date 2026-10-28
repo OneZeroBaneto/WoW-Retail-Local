@@ -31,7 +31,7 @@ $stages=@(
     @{name='DatabaseFiles';ready={Assert-FileHash "$Root/downloads/tdb.7z" $p.database.sha256;foreach($f in $p.database.files){Require-File "$Root/runtime/$f"};$true};run={Run-Step 'DatabaseFiles'}},
     @{name='Extract';ready={Assert-DataReady $Root $p;$true};run={Run-Step 'Extract'}},
     @{name='Database';ready={$d=Get-Content "$Root/runtime/database.json" -Raw | ConvertFrom-Json;$d.coreCommit -eq $p.core.commit -and $d.clientVersion -eq $p.client.version};run={Run-Step 'Database'}},
-    @{name='Certificates';ready={(Test-Path "$Root/runtime/certs/server.crt") -and (Test-Path "$Root/runtime/certs/server.key")};run={Run-Step 'Certificates'}}
+    @{name='Certificates';ready={Assert-CertificatesReady "$Root/runtime/certs";$true};run={Run-Step 'Certificates'}}
 )
 Invoke-PreparationStages $p $clientVersion $stages
 if($NorthshireWarrior){Invoke-Native $pwsh @('-NoProfile','-File',"$PSScriptRoot/Starter.ps1",'-Root',$Root)}

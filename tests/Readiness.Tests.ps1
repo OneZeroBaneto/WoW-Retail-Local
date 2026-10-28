@@ -97,5 +97,29 @@ try {
         Assert ((ConvertTo-ClientVersion '' '12.1.5.70575') -eq '12.1.5.70575') 'Product version fallback failed.'
         MustThrow { ConvertTo-ClientVersion 'unknown' 'unknown' }
     }
+    Check 'Certificate readiness rejects empty, mismatched and expired keys without changing files' {
+        $dir=Join-Path $temp 'certs';New-Item -ItemType Directory $dir | Out-Null
+        $certPath=Join-Path $dir 'server.crt';$keyPath=Join-Path $dir 'server.key'
+        [IO.File]::WriteAllText($certPath,'');[IO.File]::WriteAllText($keyPath,'')
+        MustThrow { Assert-CertificatesReady $dir }
+        $rsa=[Security.Cryptography.RSA]::Create(2048)
+        $other=[Security.Cryptography.RSA]::Create(2048)
+        try {
+            $req=[Security.Cryptography.X509Certificates.CertificateRequest]::new('CN=localhost',$rsa,[Security.Cryptography.HashAlgorithmName]::SHA256,[Security.Cryptography.RSASignaturePadding]::Pkcs1)
+            $cert=$req.CreateSelfSigned([DateTimeOffset]::UtcNow.AddMinutes(-1),[DateTimeOffset]::UtcNow.AddDays(1))
+            [IO.File]::WriteAllText($certPath,$cert.ExportCertificatePem())
+            [IO.File]::WriteAllText($keyPath,$rsa.ExportPkcs8PrivateKeyPem())
+            Assert-CertificatesReady $dir
+            [IO.File]::WriteAllText($keyPath,$other.ExportPkcs8PrivateKeyPem())
+            $before=Get-BytesHash ([IO.File]::ReadAllBytes($keyPath))
+            MustThrow { Assert-CertificatesReady $dir }
+            Assert ((Get-BytesHash ([IO.File]::ReadAllBytes($keyPath))) -eq $before) 'Invalid existing key was changed.'
+            [IO.File]::WriteAllText($keyPath,$rsa.ExportPkcs8PrivateKeyPem())
+            $expired=$req.CreateSelfSigned([DateTimeOffset]::UtcNow.AddDays(-2),[DateTimeOffset]::UtcNow.AddDays(-1))
+            [IO.File]::WriteAllText($certPath,$expired.ExportCertificatePem())
+            MustThrow { Assert-CertificatesReady $dir }
+            $cert.Dispose();$expired.Dispose()
+        }finally{$rsa.Dispose();$other.Dispose()}
+    }
 }finally{Remove-Item $temp -Recurse -Force}
 Write-Host "$script:passed readiness tests passed."

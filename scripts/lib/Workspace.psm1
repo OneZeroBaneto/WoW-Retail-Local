@@ -109,6 +109,16 @@ log-error="$base/runtime/logs/mysql-error.log"
 function Assert-ClientVersion($Profile,[string]$Version) {
     if ($Version.Trim() -ne $Profile.client.version) { throw "Client $Version is not the pinned $($Profile.client.version)." }
 }
+function Assert-CertificatesReady([string]$Directory) {
+    $cert=$null
+    try {
+        # CreateFromPemFile validates both PEM encodings and that the private key matches.
+        $cert=[Security.Cryptography.X509Certificates.X509Certificate2]::CreateFromPemFile((Join-Path $Directory 'server.crt'),(Join-Path $Directory 'server.key'))
+        $now=[DateTime]::UtcNow
+        if(!$cert.HasPrivateKey -or $cert.NotBefore.ToUniversalTime() -gt $now -or $cert.NotAfter.ToUniversalTime() -le $now){throw 'Certificate is not currently valid.'}
+    }catch{throw 'Server certificate/key are missing, invalid, expired or mismatched. Preserve existing certificate files and inspect them before retrying.'}
+    finally{if($cert){$cert.Dispose()}}
+}
 function ConvertTo-ClientVersion([string]$FileVersion,[string]$ProductVersion) {
     # Numeric VS_FIXEDFILEINFO components are only 16 bits; current WoW build IDs exceed 65535.
     foreach($text in @($FileVersion,$ProductVersion)) {

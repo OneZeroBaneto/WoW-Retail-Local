@@ -46,7 +46,8 @@ try {
             }
         }
         foreach($check in @({Assert-SourceReady (Join-Path $Root 'vendor/core') $p.core.commit (Get-ConsolePatch $Root $p)},{Assert-DataReady $Root $p})) {try{& $check}catch{$failures.Add($_.Exception.Message)}}
-        foreach($f in @('runtime/database.json','runtime/certs/server.crt','runtime/certs/server.key')){if(!(Test-Path (Join-Path $Root $f))){$failures.Add("Not prepared: $f")}}
+        if(!(Test-Path "$Root/runtime/database.json")){$failures.Add('Not prepared: runtime/database.json')}
+        try{Assert-CertificatesReady "$Root/runtime/certs"}catch{$failures.Add($_.Exception.Message)}
         if($failures.Count){foreach($f in $failures){Write-Host "OPEN: $f"};exit 2}
         Write-Host 'Files/build metadata are ready. Windows launch and gameplay are separate checks.';exit 0
     }

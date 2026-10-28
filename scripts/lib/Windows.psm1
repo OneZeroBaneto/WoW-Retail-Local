@@ -201,6 +201,7 @@ function New-ServerCertificates([string]$Root,$Profile,$Settings) {
     [IO.File]::WriteAllText("$dir/server.ext","basicConstraints=critical,CA:FALSE`nkeyUsage=critical,digitalSignature,keyEncipherment`nextendedKeyUsage=serverAuth`nsubjectAltName=DNS:$dns,IP:127.0.0.1`n")
     Invoke-Native $openssl @('x509','-req','-in',"$dir/server.csr",'-CA',"$dir/ca.crt",'-CAkey',"$dir/ca.key",'-CAcreateserial','-out',"$dir/server.crt",'-days','825','-sha256','-extfile',"$dir/server.ext")
     Add-Content "$dir/server.crt" (Get-Content "$dir/ca.crt" -Raw)
+    Assert-CertificatesReady $dir
     Write-Host "Certificates created. Client setup/trust is described in docs/WINDOWS-SETUP.md."
 }
 Export-ModuleMember -Function *

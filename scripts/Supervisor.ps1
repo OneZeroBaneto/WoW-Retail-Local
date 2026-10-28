@@ -18,7 +18,7 @@ try {
     Assert-DataReady $Root $p
     $db=Get-Content (Join-Path $Root 'runtime/database.json') -Raw | ConvertFrom-Json
     if($db.coreCommit -ne $p.core.commit -or $db.clientVersion -ne $p.client.version){throw 'Database preparation does not match this source/client lock.'}
-    foreach($file in @('runtime/certs/server.crt','runtime/certs/server.key')){Require-File (Join-Path $Root $file)}
+    Assert-CertificatesReady (Join-Path $Root 'runtime/certs')
     if($p.edition -eq 'forever') {
         $addresses=@([Net.Dns]::GetHostAddresses('trinity.actual.battle.net'))
         if(!$addresses.Count -or @($addresses | Where-Object { ![Net.IPAddress]::IsLoopback($_) }).Count){throw 'Complete the loopback hosts entry in docs/WINDOWS-SETUP.md first.'}

@@ -60,9 +60,12 @@ Nach dem Stopp `Backup.bat` ausführen. Die fertige Sicherung steht unter `backu
 
 Wiederherstellung erfolgt zunächst manuell: alle Dienste stoppen, vorhandenen Zustand separat sichern, denselben Repo-/Core-Stand und dieselbe MySQL-Version verwenden, Inhalte des Snapshots in den ursprünglichen Projektpfad kopieren, Clientdaten/Binaries bereitstellen und `Check` sowie Neustart-/Persistenztests durchführen. Bei einem anderen Zielpfad lokale Pfade bewusst anpassen; die Root-Prüfung verhindert unbemerkte Verwendung fremder Pfade. Ein Restore wird erst nach einem echten Test als zuverlässig bezeichnet.
 
+Direkte Änderungen an generierten `runtime/*.conf` werden bei `Configure` und beim Einstieg in `Setup` aus den Vorlagen neu erzeugt. Unterstützte persönliche Pfade und Geheimnisse gehören in `local/settings.json`; beabsichtigte weitere Core-Anpassungen vor einem erneuten Configure separat sichern.
+
 ## Fehler und Updates
 
 - Belegte Ports: andere TBC-/Forever-/Retail-Instanz sauber stoppen. Das Paket tötet keine Prozesse anhand ihres Namens.
+- Unvollständige Zertifikate: leere, abgelaufene oder nicht zusammenpassende Schlüssel/Zertifikate werden abgelehnt. Vorhandenes Material zuerst gesichert untersuchen; es wird nicht automatisch ersetzt.
 - Halb fertige DB-Initialisierung: Verzeichnis und Logs erhalten. Nicht `runtime/mysql-data` löschen, um eine Fehlermeldung loszuwerden.
 - Verwaiste Prozesse nach geschlossenem Supervisor: keine automatischen PID-/Namens-Kills. Prozesse, Pfade und Datenbankzustand prüfen. Erst den Worldserver geordnet beenden; für die anschließende MySQL-Abschaltung die Projektfunktion `Stop-LocalMySQL` mit dem passenden Root und dessen Einstellungen verwenden. Ein nackter `mysqladmin --defaults-file=...`-Aufruf ist wegen möglicher fremder `.mylogin.cnf`-Einträge ungeeignet.
 - Versionswechsel: zuerst Offline-Backup; Core-/Client-/DB-Pins gemeinsam prüfen. Für den ersten Wechsel eine neue Testinstallation verwenden. Source/Build/Extract/Database sind bewusste Wartungsschritte, kein blindes In-Place-Update.
