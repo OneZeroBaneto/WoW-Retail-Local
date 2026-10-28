@@ -10,6 +10,18 @@ Import-Module "$root/scripts/lib/Readiness.psm1" -DisableNameChecking
 Assert-Windows
 Import-Module NetTCPIP
 if($env:GITHUB_ACTIONS -ne 'true'){throw 'This script provisions only a disposable GitHub Actions Windows runner.'}
+trap {
+    $problem=$_.Exception.Message
+    $secrets=@()
+    if(Test-Path "$root/local/settings.json"){$localSettings=Get-Content "$root/local/settings.json" -Raw | ConvertFrom-Json;$secrets=@($localSettings.rootPassword,$localSettings.databasePassword)}
+    foreach($log in @(Get-ChildItem "$root/runtime/logs" -File -Filter '*.log' -ErrorAction SilentlyContinue)) {
+        $lines=(Get-Content $log.FullName -Tail 50) -join "`n"
+        foreach($secret in $secrets){if($secret){$lines=$lines.Replace($secret,'[REDACTED]');$problem=$problem.Replace($secret,'[REDACTED]')}}
+        Write-Host "Diagnostic $($log.Name):`n$lines"
+    }
+    Write-Error $problem
+    exit 1
+}
 $p=Read-Profile $root
 $opensslRoot='C:/libs/wow-openssl-3.5.9'
 $installer=Join-Path $env:RUNNER_TEMP 'wow-openssl.exe'
@@ -31,7 +43,30 @@ $s=Initialize-Workspace $root
 & "$root/tests/Readiness.Tests.ps1"
 & "$root/tests/Parse-All.ps1"
 Prepare-CoreSource $root $p
+function Save-BuildPackage([bool]$DatabaseImport=$false,[bool]$BnetRest=$false,$Readiness=$null) {
+$package=Join-Path $root 'dist/windows-server'
+New-Item -ItemType Directory "$package/runtime" -Force | Out-Null
+# Explicit allowlist: never upload local settings, generated configs, DBs, logs or certificates.
+foreach($name in @('worldserver','bnetserver','mapextractor','vmap4extractor','vmap4assembler','mmaps_generator')) {
+    Copy-Item "$root/runtime/$name.exe" "$package/runtime/"
+}
+Get-ChildItem "$root/runtime" -File -Filter '*.dll' | Copy-Item -Destination "$package/runtime/"
+Copy-Item "$root/runtime/build.json" "$package/runtime/"
+Copy-Item "$root/sources.lock.json" $package
+Copy-Item "$root/LICENSE" $package
+New-Item -ItemType Directory "$package/licenses" -Force | Out-Null
+Copy-Item "$root/vendor/core/COPYING" "$package/licenses/TrinityCore.txt"
+Copy-Item "$($s.mysqlRoot)/LICENSE" "$package/licenses/MySQL.txt"
+$files=@(Get-ChildItem "$package/runtime" -File | ForEach-Object {@{name=$_.Name;sha256=(Get-FileHash $_.FullName).Hash.ToLowerInvariant()}})
+Write-JsonFile "$package/verification.json" @{
+    coreCommit=$p.core.commit;patchSha256=$p.core.patchSha256;clientVersion=$p.client.version
+    runner=$env:RUNNER_OS;runId=$env:GITHUB_RUN_ID;coreTests=$true;databaseImport=$DatabaseImport;bnetRest=$BnetRest
+    readiness=$Readiness
+    gameClientTested=$false;gameplayTested=$false;files=$files
+}
+}
 Build-Core $root $p $s -WithTests
+Save-BuildPackage
 Download-Database $root $p $s
 Initialize-Database $root $p $s
 New-ServerCertificates $root $p $s
@@ -51,20 +86,5 @@ try {
     if($bnet){if(!$bnet.Process.HasExited){$bnet.Process.Kill()};$null=Complete-OwnedProcess $bnet 30}
     if($mysql){if(!$mysql.Process.HasExited){Stop-LocalMySQL $root $s};$null=Complete-OwnedProcess $mysql 120}
 }
-$package=Join-Path $root 'dist/windows-server'
-New-Item -ItemType Directory "$package/runtime" -Force | Out-Null
-# Explicit allowlist: never upload local settings, generated configs, DBs, logs or certificates.
-foreach($name in @('worldserver','bnetserver','mapextractor','vmap4extractor','vmap4assembler','mmaps_generator')) {
-    Copy-Item "$root/runtime/$name.exe" "$package/runtime/"
-}
-Get-ChildItem "$root/runtime" -File -Filter '*.dll' | Copy-Item -Destination "$package/runtime/"
-Copy-Item "$root/runtime/build.json" "$package/runtime/"
-Copy-Item "$root/sources.lock.json" $package
-$files=@(Get-ChildItem "$package/runtime" -File | ForEach-Object {@{name=$_.Name;sha256=(Get-FileHash $_.FullName).Hash.ToLowerInvariant()}})
-Write-JsonFile "$package/verification.json" @{
-    coreCommit=$p.core.commit;patchSha256=$p.core.patchSha256;clientVersion=$p.client.version
-    runner=$env:RUNNER_OS;runId=$env:GITHUB_RUN_ID;coreTests=$true;databaseImport=$true;bnetRest=$true
-    readiness=$readiness
-    gameClientTested=$false;gameplayTested=$false;files=$files
-}
+Save-BuildPackage $true $true $readiness
 Write-Host 'Windows build, core tests, DB import and BNet REST passed. Real client login and gameplay are still separate acceptance tests.'

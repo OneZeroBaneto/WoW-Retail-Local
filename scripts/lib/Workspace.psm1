@@ -157,7 +157,7 @@ function Invoke-Native {
         if ($info.RedirectStandardInput) { $process.StandardInput.Write($InputText); $process.StandardInput.Close() }
         $process.WaitForExit()
         if ($Capture) { $output=$outTask.GetAwaiter().GetResult(); $errors=$errTask.GetAwaiter().GetResult() }
-        if ($process.ExitCode -ne 0) { throw "$([IO.Path]::GetFileName($File)) failed (exit $($process.ExitCode)). $(if ($Capture) { $errors })" }
+        if ($process.ExitCode -ne 0) { throw "$([IO.Path]::GetFileName($File)) failed (exit $($process.ExitCode)). $(if ($Capture) { $errors + $output })" }
         if ($Capture) { return $output.TrimEnd("`r","`n") }
     } finally { $process.Dispose() }
 }
@@ -188,7 +188,7 @@ function Assert-SourceReady([string]$Source,[string]$Commit,[string]$PatchFile) 
     }
 }
 function Get-LocalMySQLConnection([string]$Root,$Profile,[switch]$Passwordless) {
-    $options=if($Passwordless){@('--no-defaults')}else{@("--defaults-file=$(Join-Path $Root 'local/root.cnf')")}
+    $options=@(if($Passwordless){'--no-defaults'}else{"--defaults-file=$(Join-Path $Root 'local/root.cnf')"})
     $options+=@('--host=127.0.0.1',"--port=$($Profile.database.port)",'--protocol=TCP','--user=root')
     if($Passwordless){$options+='--skip-password'}
     # MySQL 8.0 reads .mylogin.cnf even with --defaults-file/--no-defaults.

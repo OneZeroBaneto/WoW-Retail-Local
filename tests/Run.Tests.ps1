@@ -73,6 +73,9 @@ try {
     }
     Check 'Native failures propagate as failures' {
         MustThrow { Invoke-Native (Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })) @('-NoProfile','-Command','exit 17') -Capture }
+        $message=''
+        try{Invoke-Native (Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })) @('-NoProfile','-Command','[Console]::WriteLine("failure-on-stdout"); exit 17') -Capture}catch{$message=$_.Exception.Message}
+        Assert ($message.Contains('failure-on-stdout')) 'Native stdout diagnostic was lost.'
     }
     Check 'Extraction marker must match pinned build and core' {
         MustThrow { Assert-DataReady $temp $profile }
@@ -166,10 +169,13 @@ try {
                 $actual=Invoke-Native (Join-Path $PSHOME $(if($IsWindows){'pwsh.exe'}else{'pwsh'})) (@('-NoProfile','-File',$fixture)+$connection.Arguments) -Environment $connection.Environment -Capture
                 Assert ($actual.Contains($connection.Environment.MYSQL_TEST_LOGIN_FILE)) 'Login file override did not reach child.'
                 Assert (!(Test-Path $connection.Environment.MYSQL_TEST_LOGIN_FILE)) 'Login override points at existing credentials.'
-                foreach($required in @('--host=127.0.0.1',"--port=$($profile.database.port)",'--protocol=TCP','--user=root')) {Assert ($actual.Contains($required)) "Missing $required"}
+                $lines=$actual -split '\r?\n'
+                foreach($required in @('--host=127.0.0.1',"--port=$($profile.database.port)",'--protocol=TCP','--user=root')) {Assert ($lines -contains $required) "Not a separate native argument: $required"}
+                $expectedFirst=if($passwordless){'--no-defaults'}else{"--defaults-file=$(Join-Path $temp 'local/root.cnf')"}
+                Assert ($lines[1] -eq $expectedFirst) 'First MySQL option was concatenated with later options.'
                 Assert (!$actual.Contains('existing-user-login.cnf')) 'User login leaked into child.'
                 Assert ($env:MYSQL_TEST_LOGIN_FILE -eq 'existing-user-login.cnf') 'Parent environment was changed.'
-                if($passwordless){Assert ($actual.Contains('--skip-password')) 'Bootstrap can inherit a password.'}
+                if($passwordless){Assert ($lines -contains '--skip-password') 'Bootstrap can inherit a password.'}
             }
         } finally { $env:MYSQL_TEST_LOGIN_FILE=$before }
     }

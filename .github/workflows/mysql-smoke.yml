@@ -1,0 +1,20 @@
+name: Native Windows MySQL integration
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mysql:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test isolated native MySQL bootstrap, queries and shutdown
+        shell: pwsh
+        run: |
+          Import-Module ./scripts/lib/Workspace.psm1 -DisableNameChecking
+          $zip=Join-Path $env:RUNNER_TEMP 'mysql.zip'
+          Invoke-WebRequest 'https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.46-winx64.zip' -OutFile $zip
+          Assert-FileHash $zip '28e9eda019d88eff4478d811ea2110b83f02a3966be157fe91cc55def3ab0d4d'
+          Expand-Archive $zip -DestinationPath 'C:/libs'
+          ./tests/WindowsMySQL.Tests.ps1 -MySQLRoot 'C:/libs/mysql-8.0.46-winx64'
