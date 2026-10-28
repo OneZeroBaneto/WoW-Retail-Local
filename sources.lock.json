@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "edition": "retail",
+  "realmName": "WoW Retail Local",
+  "core": {
+    "repository": "https://github.com/TrinityCore/TrinityCore.git",
+    "branch": "master",
+    "commit": "2245496d5aebb9351dc05a4d54995f94007051a2",
+    "patchSha256": "487e2a2d502ac732ca7889d17d43398ca718ea957bde683dafb130fbb9ba30f3"
+  },
+  "client": {
+    "version": "12.1.5.70575",
+    "build": 70575,
+    "relativeExe": "_retail_/Wow.exe",
+    "status": "upstream declared build; own gameplay acceptance pending"
+  },
+  "database": {
+    "prefix": "wow_retail",
+    "port": 3313,
+    "realmId": 1,
+    "url": "https://github.com/TrinityCore/TrinityCore/releases/download/TDB1210.26091/TDB_full_1210.26091_2026_09_09.7z",
+    "sha256": "fc5513334d7534a19f533124a95910193c8150379e5ed8d0db3e547ac2c5a3f5",
+    "files": [
+      "TDB_full_world_1210.26091_2026_09_09.sql",
+      "TDB_full_hotfixes_1210.26091_2026_09_09.sql"
+    ]
+  },
+  "ports": {
+    "bnet": 1119,
+    "rest": 8081,
+    "world": 8085
+  },
+  "launcher": {
+    "url": "https://trinitycore.info/install/Client-Setup",
+    "status": "Matching retail custom launcher required; Windows compatibility with 70575 unverified; not bundled"
+  }
+}

@@ -1,0 +1,48 @@
+diff --git a/src/server/worldserver/CommandLine/CliRunnable.cpp b/src/server/worldserver/CommandLine/CliRunnable.cpp
+index 5e8fd69a0728ee06c13c739181ac6b3c82930817..0ed9fc627780a688fdbf681f88a5ba31ebe3cd10 100644
+--- a/src/server/worldserver/CommandLine/CliRunnable.cpp
++++ b/src/server/worldserver/CommandLine/CliRunnable.cpp
+@@ -31,6 +31,7 @@
+ #include <readline/history.h>
+ #else
+ #include <Windows.h>
++#include <iostream>
+ #endif
+ 
+ static constexpr char CLI_PREFIX[] = "TC> ";
+@@ -74,7 +75,14 @@ namespace Trinity::Impl::Readline
+ void utf8print(void* /*arg*/, std::string_view str)
+ {
+ #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
+-    WriteWinConsole(str);
++    DWORD consoleMode;
++    if (GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &consoleMode))
++        WriteWinConsole(str);
++    else
++    {
++        fwrite(str.data(), 1, str.size(), stdout);
++        fflush(stdout);
++    }
+ #else
+ {
+     printf(STRING_VIEW_FMT, STRING_VIEW_FMT_ARG(str));
+@@ -143,8 +151,17 @@ void CliThread()
+         std::string command;
+ 
+ #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
+-        if (!ReadWinConsole(command))
+-            continue;
++        DWORD consoleMode;
++        if (GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &consoleMode))
++        {
++            if (!ReadWinConsole(command))
++                continue;
++        }
++        else if (!std::getline(std::cin, command))
++        {
++            World::StopNow(SHUTDOWN_EXIT_CODE);
++            break;
++        }
+ #else
+         char* command_str = readline(CLI_PREFIX);
+         ::rl_bind_key('\t', ::rl_complete);

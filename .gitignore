@@ -1,0 +1,10 @@
+/vendor/
+/build/
+/runtime/
+/local/
+/downloads/
+/backups/
+/dist/
+.superpowers/
+.DS_Store
+*.zip
