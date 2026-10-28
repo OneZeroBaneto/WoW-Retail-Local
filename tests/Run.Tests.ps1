@@ -172,7 +172,10 @@ try {
                 $lines=$actual -split '\r?\n'
                 foreach($required in @('--host=127.0.0.1',"--port=$($profile.database.port)",'--protocol=TCP','--user=root')) {Assert ($lines -contains $required) "Not a separate native argument: $required"}
                 $expectedFirst=if($passwordless){'--no-defaults'}else{"--defaults-file=$(Join-Path $temp 'local/root.cnf')"}
-                Assert ($lines[1] -eq $expectedFirst) "First native argument mismatch: actual=<$($lines[1])>; expected=<$expectedFirst>."
+                # pwsh -File reinterprets the colon in Windows drive paths. Check the
+                # produced argument here; WindowsMySQL.Tests verifies it with mysql.exe.
+                Assert ($connection.Arguments[0] -eq $expectedFirst) 'First MySQL option was concatenated.'
+                Assert ($connection.Arguments.Count -eq $(if($passwordless){6}else{5})) 'MySQL options are not separate arguments.'
                 Assert (!$actual.Contains('existing-user-login.cnf')) 'User login leaked into child.'
                 Assert ($env:MYSQL_TEST_LOGIN_FILE -eq 'existing-user-login.cnf') 'Parent environment was changed.'
                 if($passwordless){Assert ($lines -contains '--skip-password') 'Bootstrap can inherit a password.'}
